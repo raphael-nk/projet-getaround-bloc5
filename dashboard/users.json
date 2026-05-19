@@ -1,0 +1,17 @@
+{
+    "admin": {
+        "password": "getaround2026",
+        "name": "Admin User",
+        "role": "admin"
+    },
+    "manager": {
+        "password": "manager123",
+        "name": "Marketing Manager",
+        "role": "manager"
+    },
+    "analyst": {
+        "password": "analyst123",
+        "name": "Data Analyst",
+        "role": "analyst"
+    }
+}
