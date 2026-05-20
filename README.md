@@ -35,7 +35,7 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 | API documentée en ligne | FastAPI `/docs` — URL de prod à renseigner |
 | Endpoint `POST /predict` | `api/main.py` |
 | Notebooks d’analyse & ML | `notebooks/` |
-| Tracking MLflow (optionnel) | Expérience `getaround-pricing` |
+| Tracking MLflow | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) — expérience `getaround-pricing` |
 
 ---
 
@@ -98,8 +98,8 @@ Copier `.env.dist` vers `.env` et renseigner :
 
 | Variable | Description |
 |----------|-------------|
-| `MLFLOW_TRACKING_URI` | URI Postgres pour le backend MLflow **server** |
-| `MLFLOW_SERVER_URI` | URL HTTP du tracking client / API (ex. `http://127.0.0.1:5000`) |
+| `MLFLOW_BACKEND_STORE_URI` | URI Postgres pour le backend MLflow **server** |
+| `MLFLOW_SERVER_URI` | URL HTTP du tracking client / API (prod : `https://raphael-nk-getaround-mlflow.hf.space`, local : `http://127.0.0.1:5000`) |
 | `MLFLOW_EXPERIMENT` | Nom de l’expérience (défaut : `getaround-pricing`) |
 | `MLFLOW_PRODUCTION_RUN_ID` | *(optionnel)* Forcer un run production précis |
 | `ARTIFACT_ROOT` | Racine artefacts S3 (`s3://...`) |
@@ -126,14 +126,18 @@ Exécuter dans l’ordre. Le notebook 3 exporte :
 
 ## MLflow (tracking)
 
-**Terminal 1 — serveur :**
+**Production (Hugging Face Space) :** [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space)
+
+Déployé via le Space [`raphael-nk/getaround-mlflow`](https://huggingface.co/spaces/raphael-nk/getaround-mlflow) (`mlflow/Dockerfile`). Pour les clients (notebook 03, API), définir `MLFLOW_SERVER_URI=https://raphael-nk-getaround-mlflow.hf.space` dans `.env`.
+
+**Terminal 1 — serveur local (optionnel) :**
 
 ```bash
 source .venv/bin/activate
 set -a && source .env && set +a
 
 mlflow server \
-  --backend-store-uri "$MLFLOW_TRACKING_URI" \
+  --backend-store-uri "$MLFLOW_BACKEND_STORE_URI" \
   --default-artifact-root "$ARTIFACT_ROOT" \
   --host 0.0.0.0 \
   --port 5000
@@ -142,6 +146,20 @@ mlflow server \
 UI : [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 Lancer le notebook 3 **après** le serveur pour logger les runs. Sans serveur, l’entraînement et l’export local fonctionnent toujours.
+
+### MLflow en Docker (sans Compose)
+
+Un seul **`mlflow/Dockerfile`** (pas de `docker-compose`, compatible avec les environnements qui n’acceptent qu’une image Docker, ex. **Hugging Face Docker Space**).
+
+```bash
+# depuis la racine du dépôt
+docker build -f mlflow/Dockerfile -t getaround-mlflow:latest .
+
+# variables depuis .env local (recommandé si vous ne voulez pas baker les secrets dans l’image)
+docker run --rm -p 5000:5000 --env-file .env getaround-mlflow:latest
+```
+
+**Hugging Face :** renseigner `MLFLOW_BACKEND_STORE_URI`, `ARTIFACT_ROOT` et les clés AWS / S3 dans les **variables / secrets** du Space. L’image écoute **`$PORT`** (défaut **5000** en local). Le conteneur fait `source /app/.env` au démarrage : si ce fichier contient les mêmes clés que le Space, les valeurs du fichier **priment** ; pour n’utiliser que les variables HF, évitez de baker un `.env` avec ces clés ou laissez un `/app/.env` minimal (ex. uniquement `.env.dist` sans secrets réels).
 
 ---
 
@@ -259,14 +277,13 @@ Configurer l’URL API dans le dashboard si l’API tourne sur un autre host/por
 
 ## Déploiement en production
 
-À compléter avec vos URLs une fois déployé (ex. Hugging Face Spaces, Render, etc.) :
-
 | Service | URL |
 |---------|-----|
-| **Dashboard** | `https://<votre-dashboard>/` |
-| **API** | `https://<votre-api>/` |
-| **Documentation API** | `https://<votre-api>/docs` |
-| **Predict** | `https://<votre-api>/predict` |
+| **MLflow** | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) |
+| **Dashboard** | `https://<votre-dashboard>/` *(à compléter)* |
+| **API** | `https://<votre-api>/` *(à compléter)* |
+| **Documentation API** | `https://<votre-api>/docs` *(à compléter)* |
+| **Predict** | `https://<votre-api>/predict` *(à compléter)* |
 
 **Exemple production :**
 

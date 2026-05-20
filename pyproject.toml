@@ -49,5 +49,6 @@ mlflow = [
     "sqlalchemy>=1.4.0,<2.0",
     "boto3>=1.43.11",
     "psycopg2-binary>=2.9.12",
-    "awscli>=1.45.11"
+    "awscli>=1.45.11",
+    "setuptools>=69,<81",
 ]
