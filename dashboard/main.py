@@ -448,8 +448,25 @@ div[data-baseweb="select"] > div {{
     background: var(--surface) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
-    font-family: var(--font-b) !important;
     font-weight: 600 !important;
+}}
+/* Ne pas appliquer Outfit sur l'icône Material (sinon texte "arrow_right" visible) */
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"] {{
+    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+    font-size: 1.1rem !important;
+}}
+[data-testid="stExpander"] summary svg {{
+    flex-shrink: 0;
+}}
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary .streamlit-expanderHeader {{
+    font-family: var(--font-b) !important;
+}}
+[data-testid="stExpander"] {{
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
 }}
 
 /* ── Metric ── */
@@ -681,7 +698,7 @@ def login_page():
             st.checkbox("Se souvenir de moi", value=True)
 
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-        if st.button("Se connecter →", use_container_width=True, type="primary"):
+        if st.button("Se connecter", use_container_width=True, type="primary"):
             if user and pw:
                 ok, data = _auth(user, pw)
                 if ok:
@@ -692,8 +709,11 @@ def login_page():
             else:
                 st.warning("Veuillez saisir vos identifiants")
 
-        with st.expander("Accès démo"):
-            st.code("admin / getaround2024\nmanager / manager123\nanalyst / analyst123")
+        with st.expander("Comptes démo", expanded=False):
+            st.code(
+                "admin / getaround2026\nmanager / manager123\nanalyst / analyst123",
+                language=None,
+            )
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
