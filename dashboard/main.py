@@ -27,13 +27,6 @@ DATA_DIR      = os.path.join(PROJECT_ROOT, "data")
 API_BASE_URL  = os.environ.get("GETAROUND_API_URL", "http://127.0.0.1:8000").rstrip("/")
 THRESHOLD_RANGE = list(range(0, 721, 30))
 USERS_PATH    = os.path.join(DASHBOARD_DIR, "users.json")
-LOGO_PATH     = os.path.join(DASHBOARD_DIR, "assets", "logo.png")
-
-# GetAround brand (logo)
-BRAND      = "#a33694"
-BRAND_LIGHT = "#c462b3"
-BRAND_DARK  = "#7a2870"
-BRAND_MUTED = "#f8f0f6"
 
 st.set_page_config(
     page_title="GetAround Analytics",
@@ -61,8 +54,8 @@ def inject_css(dark_mode: bool):
         plot_bg     = "rgba(0,0,0,0)"
         grid_c      = "rgba(255,255,255,0.05)"
         input_bg    = "#1A1A2E"
-        card_grad   = "linear-gradient(135deg,rgba(163,54,148,0.12),rgba(196,98,179,0.04))"
-        story_grad  = "linear-gradient(135deg,rgba(163,54,148,0.08),rgba(0,0,0,0))"
+        card_grad   = "linear-gradient(135deg,rgba(130,80,255,0.10),rgba(0,210,170,0.04))"
+        story_grad  = "linear-gradient(135deg,rgba(130,80,255,0.07),rgba(0,0,0,0))"
     else:
         bg          = "#F7F7FC"
         bg2         = "#FFFFFF"
@@ -78,8 +71,8 @@ def inject_css(dark_mode: bool):
         plot_bg     = "rgba(255,255,255,0)"
         grid_c      = "rgba(0,0,0,0.05)"
         input_bg    = "#FFFFFF"
-        card_grad   = "linear-gradient(135deg,rgba(163,54,148,0.08),rgba(196,98,179,0.03))"
-        story_grad  = "linear-gradient(135deg,rgba(163,54,148,0.05),rgba(255,255,255,0))"
+        card_grad   = "linear-gradient(135deg,rgba(130,80,255,0.06),rgba(0,210,170,0.02))"
+        story_grad  = "linear-gradient(135deg,rgba(130,80,255,0.04),rgba(255,255,255,0))"
 
     st.markdown(f"""
 <style>
@@ -315,20 +308,6 @@ p, li, span, label {{ font-family: var(--font-b) !important; }}
 .login-logo .sub {{
     font-size: 0.8rem; color: var(--text2); margin-top: 4px;
 }}
-.login-demo {{
-    margin-top: 20px; padding: 14px 16px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r);
-}}
-.login-demo .login-demo-title {{
-    font-size: 0.8rem; font-weight: 600; color: var(--text2);
-    margin-bottom: 10px; font-family: var(--font-b) !important;
-}}
-.login-demo .login-demo-creds {{
-    margin: 0; font-family: ui-monospace, "Cascadia Code", monospace;
-    font-size: 0.82rem; line-height: 1.6; color: var(--text2);
-    white-space: pre-wrap;
-}}
 
 /* ── FAQ ── */
 .faq-item {{
@@ -469,25 +448,8 @@ div[data-baseweb="select"] > div {{
     background: var(--surface) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
-    font-weight: 600 !important;
-}}
-/* Ne pas appliquer Outfit sur l'icône Material (sinon texte "arrow_right" visible) */
-[data-testid="stExpander"] summary [data-testid="stIconMaterial"] {{
-    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
-    font-size: 1.1rem !important;
-}}
-[data-testid="stExpander"] summary svg {{
-    flex-shrink: 0;
-}}
-[data-testid="stExpander"] summary p,
-[data-testid="stExpander"] summary .streamlit-expanderHeader {{
     font-family: var(--font-b) !important;
-}}
-[data-testid="stExpander"] {{
-    margin-top: 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    background: var(--surface);
+    font-weight: 600 !important;
 }}
 
 /* ── Metric ── */
@@ -564,6 +526,33 @@ header[data-testid="stHeader"] {{
     background: var(--bg) !important;
     border-bottom: 1px solid var(--border);
 }}
+
+/* ── Fix sidebar collapse button — hide icon label text, show clean chevron ── */
+[data-testid="collapsedControl"] {{
+    background: var(--bg2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--r) !important;
+}}
+button[data-testid="baseButton-headerNoPadding"],
+[data-testid="stSidebarCollapseButton"] button {{
+    color: var(--text2) !important;
+}}
+/* Hide the material icon text "keyboard_double_arrow_left" etc */
+[data-testid="stSidebarCollapseButton"] button span,
+[data-testid="collapsedControl"] button span {{
+    font-size: 0 !important;
+}}
+[data-testid="stSidebarCollapseButton"] button span::before,
+[data-testid="collapsedControl"] button span::before {{
+    content: "‹" !important;
+    font-size: 20px !important;
+    font-family: var(--font-b) !important;
+    line-height: 1;
+    display: block;
+}}
+[data-testid="collapsedControl"] button span::before {{
+    content: "›" !important;
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -586,19 +575,23 @@ C = dict(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # HELPERS UI
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-def kpi(label, value, delta=None, mode="neu"):
-    delta_html = ""
-    if delta:
-        arrow = "↑" if mode == "pos" else ("↓" if mode == "neg" else "·")
-        delta_html = f'<div class="kpi-delta {mode}">{arrow} {delta}</div>'
-    return f'''<div class="kpi-card">
-        <div class="kpi-label">{label}</div>
-        <div class="kpi-val">{value}</div>
-        {delta_html}
-    </div>'''
-
-def kpi_row(cards):
-    st.markdown(f'<div class="kpi-wrap">{"".join(cards)}</div>', unsafe_allow_html=True)
+def kpi_row(items):
+    """
+    items = list of (label, value, delta, mode) tuples
+    Rendered via st.columns to avoid Streamlit HTML sanitization.
+    """
+    cols = st.columns(len(items))
+    for col, (label, value, delta, mode) in zip(cols, items):
+        with col:
+            arrow = "↑ " if mode == "pos" else ("↓ " if mode == "neg" else "· ")
+            delta_color = "#00D2AA" if mode == "pos" else ("#FF5C5C" if mode == "neg" else "#9898B8")
+            delta_html = f'<div style="font-size:0.75rem;margin-top:6px;color:{delta_color};font-family:Outfit,sans-serif;font-weight:500;">{arrow}{delta}</div>' if delta else ""
+            st.markdown(f"""
+<div class="kpi-card">
+  <div class="kpi-label">{label}</div>
+  <div class="kpi-val">{value}</div>
+  {delta_html}
+</div>""", unsafe_allow_html=True)
 
 def section_label(text):
     st.markdown(f'<div class="section-label">{text}</div>', unsafe_allow_html=True)
@@ -664,8 +657,9 @@ def login_page():
         st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
         # Logo
         try:
-            if os.path.exists(LOGO_PATH):
-                st.image(LOGO_PATH, width=160)
+            logo_path = os.path.join(DASHBOARD_DIR, "logo.png")
+            if os.path.exists(logo_path):
+                st.image(logo_path, width=160)
             else:
                 st.markdown('''<div class="login-logo">
                     <div class="brand">getaround</div>
@@ -687,7 +681,7 @@ def login_page():
             st.checkbox("Se souvenir de moi", value=True)
 
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-        if st.button("Se connecter", use_container_width=True, type="primary"):
+        if st.button("Se connecter →", use_container_width=True, type="primary"):
             if user and pw:
                 ok, data = _auth(user, pw)
                 if ok:
@@ -698,12 +692,10 @@ def login_page():
             else:
                 st.warning("Veuillez saisir vos identifiants")
 
-        with st.expander("Comptes démo", expanded=False):
-            st.code(
-                "admin / getaround2026\nmanager / manager123\nanalyst / analyst123",
-                language=None,
-            )
+        with st.expander("Accès démo"):
+            st.code("admin / getaround2024\nmanager / manager123\nanalyst / analyst123")
         st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CHARGEMENT DONNÉES
@@ -795,11 +787,11 @@ def page_delay(theme):
     section_label("Indicateurs clés")
     late_n = int((delay > 0).sum())
     kpi_row([
-        kpi("Locations totales", f"{len(df):,}"),
-        kpi("Taux de complétion", f"{(df['state']=='ended').mean()*100:.1f}%", "objectif 85%", "pos"),
-        kpi("Retours en retard", f"{late_pct:.1f}%", f"{late_n:,} locations", "neg"),
-        kpi("Délai moyen", f"{delay.mean():.0f} min", f"médiane {delay.median():.0f} min", "neu"),
-        kpi("Cas problématiques", f"{prob_n}", f"{cons['is_problematic'].mean()*100:.1f}% des consécutives", "neg"),
+        ("Locations totales", f"{len(df):,}", None, "neu"),
+        ("Taux de complétion", f"{(df['state']=='ended').mean()*100:.1f}%", "objectif 85%", "pos"),
+        ("Retours en retard", f"{late_pct:.1f}%", f"{late_n:,} locations", "neg"),
+        ("Délai moyen", f"{delay.mean():.0f} min", f"médiane {delay.median():.0f} min", "neu"),
+        ("Cas problématiques", f"{prob_n}", f"{cons['is_problematic'].mean()*100:.1f}% des consécutives", "neg"),
     ])
 
     fancy_divider()
@@ -924,14 +916,12 @@ def page_delay(theme):
             rows = []
             for ct in ["mobile", "connect"]:
                 sub = ended[ended["checkin_type"] == ct]["delay_at_checkout_in_minutes"]
-                rows.append({
-                    "Type": ct.title(),
-                    "Nb": f"{len(sub):,}",
-                    "Moyenne": f"{sub.mean():.1f} min",
-                    "Médiane": f"{sub.median():.0f} min",
-                    "En retard": f"{(sub>0).mean()*100:.1f}%",
-                    "Très en retard": f"{(sub>60).mean()*100:.1f}%",
-                })
+                rows.append(dict(
+                    Type=ct.title(), Nb=f"{len(sub):,}",
+                    Moyenne=f"{sub.mean():.1f} min", Mediane=f"{sub.median():.0f} min",
+                    En_retard=f"{(sub>0).mean()*100:.1f}%",
+                    Tres_en_retard=f"{(sub>60).mean()*100:.1f}%",
+                ))
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
             story_block(
@@ -972,12 +962,12 @@ def page_delay(theme):
             rev_risk = r["pct_blocked"] * len(cons_f) / len(df) * 100
             section_label(f"Résultats pour {thresh} min · {scope}")
             kpi_row([
-                kpi("Problèmes résolus", f"{r['pct_solved']}%", f"{r['solved']}/{r['n_problems']} cas", "pos"),
-                kpi("Locations bloquées", f"{r['pct_blocked']}%", f"{r['blocked']}/{len(cons_f)} consécutives", "neg"),
-                kpi("Efficacité", f"{r['efficiency']}x",
+                ("Problèmes résolus", f"{r['pct_solved']}%", f"{r['solved']}/{r['n_problems']} cas", "pos"),
+                ("Locations bloquées", f"{r['pct_blocked']}%", f"{r['blocked']}/{len(cons_f)} consécutives", "neg"),
+                ("Efficacité", f"{r['efficiency']}x",
                     "Bilan positif" if r["efficiency"] > 1 else "Bilan négatif",
                     "pos" if r["efficiency"] > 1 else "neg"),
-                kpi("Risque revenus", f"~{rev_risk:.1f}%", "des locations totales", "neg"),
+                ("Risque revenus", f"~{rev_risk:.1f}%", "des locations totales", "neg"),
             ])
 
         fancy_divider()
@@ -1046,9 +1036,9 @@ def page_delay(theme):
         st.markdown("<br>", unsafe_allow_html=True)
 
         kpi_row([
-            kpi("Problèmes résolus", "84.1%", "58/69 cas Connect", "pos"),
-            kpi("Locations bloquées", "36.3%", "295/813 consécutives", "neg"),
-            kpi("Efficacité", "2.32x", "Bilan largement positif", "pos"),
+            ("Problèmes résolus", "84.1%", "58/69 cas Connect", "pos"),
+            ("Locations bloquées", "36.3%", "295/813 consécutives", "neg"),
+            ("Efficacité", "2.32x", "Bilan largement positif", "pos"),
         ])
 
         fancy_divider()
@@ -1221,9 +1211,9 @@ def page_pricing(theme):
                 n_eq   = sum([has_gps, has_ac, auto, connect, parking, speed_r, winter])
 
                 kpi_row([
-                    kpi("Percentile marché", f"{pctile:.0f}e", "position dans la flotte", "neu"),
-                    kpi("vs Moyenne marché", f"{diff:+.0f}€", f"moy. {avg:.0f}€/j", "pos" if diff > 0 else "neg"),
-                    kpi("Score équipements", f"{n_eq}/7", "options activées", "pos" if n_eq >= 4 else "neu"),
+                    ("Percentile marché", f"{pctile:.0f}e", "position dans la flotte", "neu"),
+                    ("vs Moyenne marché", f"{diff:+.0f}€", f"moy. {avg:.0f}€/j", "pos" if diff > 0 else "neg"),
+                    ("Score équipements", f"{n_eq}/7", "options activées", "pos" if n_eq >= 4 else "neu"),
                 ])
 
                 section_label("Positionnement marché")
@@ -1264,11 +1254,11 @@ def page_pricing(theme):
         section_label("Indicateurs tarifaires")
         target = "rental_price_per_day"
         kpi_row([
-            kpi("Taille flotte", f"{len(df):,}", mode="neu"),
-            kpi("Prix moyen", f"{df[target].mean():.0f}€", mode="neu"),
-            kpi("Médiane", f"{df[target].median():.0f}€", mode="neu"),
-            kpi("Fourchette", f"{df[target].min()}–{df[target].max()}€", mode="neu"),
-            kpi("Marques", f"{df['model_key'].nunique()}", mode="neu"),
+            ("Taille flotte", f"{len(df):,}", None, "neu"),
+            ("Prix moyen", f"{df[target].mean():.0f}€", None, "neu"),
+            ("Médiane", f"{df[target].median():.0f}€", None, "neu"),
+            ("Fourchette", f"{df[target].min()}–{df[target].max()}€", None, "neu"),
+            ("Marques", f"{df['model_key'].nunique()}", None, "neu"),
         ])
 
         fancy_divider()
@@ -1677,7 +1667,7 @@ def main_app(theme):
         st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
         # Mode sombre/clair toggle
-        dark = st.toggle("🌙 Mode sombre", value=st.session_state.get("dark_mode", True), key="dark_toggle")
+        dark = st.toggle("Mode sombre", value=st.session_state.get("dark_mode", True), key="dark_toggle")
         if dark != st.session_state.get("dark_mode", True):
             st.session_state["dark_mode"] = dark
             st.rerun()
