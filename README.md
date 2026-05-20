@@ -30,7 +30,7 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 
 | Livrable | Emplacement |
 |----------|-------------|
-| Dashboard en production | Streamlit — voir [Dashboard](#dashboard-streamlit) |
+| Dashboard en production | [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
 | Code source | Ce dépôt GitHub |
 | API documentée en ligne | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
 | Endpoint `POST /predict` | `api/main.py` |
@@ -51,6 +51,9 @@ projet-getaround-bloc5/
 │   └── models/                 # Modèle exporté (fallback local)
 ├── dashboard/
 │   ├── main.py                 # Dashboard Streamlit (delay + pricing + API)
+│   ├── Dockerfile              # Space HF — datasets via S3 au démarrage
+│   ├── entrypoint.sh
+│   ├── sync_data_from_s3.py
 │   ├── users.json.dist         # Template utilisateurs (copier → users.json)
 │   └── assets/
 ├── data/
@@ -107,6 +110,8 @@ Copier `.env.dist` vers `.env` et renseigner :
 | `MLFLOW_PRODUCTION_RUN_ID` | *(optionnel)* Forcer un run production précis |
 | `ARTIFACT_ROOT` | Racine artefacts S3 (`s3://...`) |
 | `AWS_*` / `MLFLOW_S3_ENDPOINT_URL` | Credentials stockage artefacts |
+| `GETAROUND_API_URL` | API pricing (prod : `https://raphael-nk-getaround-api.hf.space`) |
+| `GETAROUND_DATA_S3_URI` | Datasets dashboard (ex. `s3://amzn-jedha-39/datasets/getaround/`) |
 
 ---
 
@@ -290,16 +295,40 @@ print(response.json())
 
 ## Dashboard Streamlit
 
+**Production (Hugging Face Space) :** [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space)
+
+Déployé via le Space [`raphael-nk/getaround-dashboard`](https://huggingface.co/spaces/raphael-nk/getaround-dashboard). Datasets chargés depuis **`GETAROUND_DATA_S3_URI`** (`s3://amzn-jedha-39/datasets/getaround/`). API de prédiction : **`GETAROUND_API_URL=https://raphael-nk-getaround-api.hf.space`**.
+
+**Local :**
+
 ```bash
 uv run streamlit run dashboard/main.py
 ```
 
 Ouvrir l’URL affichée (souvent [http://localhost:8501](http://localhost:8501)).
 
+### Dashboard en Docker (sans Compose)
+
+Depuis `dashboard/` (Space HF) :
+
+```bash
+cd dashboard
+docker build -t getaround-dashboard:latest .
+docker run --rm -p 7860:7860 \
+  -e GETAROUND_API_URL=https://raphael-nk-getaround-api.hf.space \
+  -e GETAROUND_DATA_S3_URI=s3://amzn-jedha-39/datasets/getaround/ \
+  --env-file ../.env \
+  getaround-dashboard:latest
+```
+
+Le conteneur écoute **`${PORT:-7860}`** (port imposé par Hugging Face).
+
+**Données :** en local, `dashboard/data/` puis `data/` à la racine. Sur le **Space dashboard HF**, les fichiers ne sont pas dans Git : ils sont téléchargés depuis **`GETAROUND_DATA_S3_URI`** (ex. `s3://amzn-jedha-39/datasets/getaround/`) au démarrage via `sync_data_from_s3.py` (credentials **`AWS_*`** dans les secrets HF).
+
 **Fonctionnalités :**
 
 - Analyse des retards (KPIs, seuils, scope Connect)
-- Pricing & simulateur de prédiction (appel API locale)
+- Pricing & simulateur de prédiction (appel API locale ou [API HF](https://raphael-nk-getaround-api.hf.space))
 - Suivi modèle / santé API
 
 **Connexion démo :** voir `dashboard/users.json` (template : `users.json.dist`).
@@ -316,7 +345,7 @@ Pour appeler l’API en production depuis le dashboard : `GETAROUND_API_URL=http
 | **API** | [https://raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) |
 | **Documentation API** | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
 | **Predict** | [https://raphael-nk-getaround-api.hf.space/predict](https://raphael-nk-getaround-api.hf.space/predict) |
-| **Dashboard** | `https://<votre-dashboard>/` *(à compléter)* |
+| **Dashboard** | [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
 
 **Exemple production :**
 

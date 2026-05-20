@@ -1266,9 +1266,12 @@ api = [
     { name = "xgboost" },
 ]
 dashboard = [
+    { name = "boto3" },
+    { name = "openpyxl" },
     { name = "pandas" },
     { name = "plotly" },
     { name = "requests" },
+    { name = "statsmodels" },
     { name = "streamlit" },
 ]
 mlflow = [
@@ -1310,9 +1313,12 @@ api = [
     { name = "xgboost", specifier = ">=3.2.0" },
 ]
 dashboard = [
+    { name = "boto3", specifier = ">=1.43.11" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=3.0.3" },
     { name = "plotly", specifier = ">=6.7.0" },
     { name = "requests", specifier = ">=2.32.0" },
+    { name = "statsmodels", specifier = ">=0.14.6" },
     { name = "streamlit", specifier = ">=1.45.0" },
 ]
 mlflow = [
