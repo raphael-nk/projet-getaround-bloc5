@@ -81,6 +81,81 @@ def inject_css(dark_mode: bool):
         card_grad   = "linear-gradient(135deg,rgba(163,54,148,0.08),rgba(196,98,179,0.03))"
         story_grad  = "linear-gradient(135deg,rgba(163,54,148,0.05),rgba(255,255,255,0))"
 
+    light_widgets_css = ""
+    if not dark_mode:
+        light_widgets_css = """
+/* ── Mode clair : formulaires, sliders, tableaux ── */
+.main [data-testid="stWidgetLabel"] p,
+.main [data-testid="stMarkdownContainer"] p,
+.main [data-testid="stMarkdownContainer"] strong,
+.main [data-testid="stCaption"] {{
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stSelectbox"] [data-baseweb="select"] > div {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.12) !important;
+}}
+.main [data-testid="stSelectbox"] [data-baseweb="select"] span {{
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stTextInput"] input,
+.main [data-testid="stNumberInput"] input {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.12) !important;
+}}
+.main [data-testid="stNumberInput"] button {{
+    background-color: #EEEEF8 !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.10) !important;
+}}
+.main [data-testid="stNumberInput"] button:hover {{
+    background-color: #E2E2F4 !important;
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stSlider"] [data-testid="stWidgetLabel"] p,
+.main [data-testid="stSlider"] [data-testid="stTickBarMin"],
+.main [data-testid="stSlider"] [data-testid="stTickBarMax"],
+.main [data-testid="stSlider"] [data-testid="stThumbValue"] {{
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stRadio"] label,
+.main [data-testid="stRadio"] label p,
+.main [data-testid="stRadio"] label span,
+.main [data-testid="stRadio"] [role="radiogroup"] label {{
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stToggle"] label p,
+.main [data-testid="stToggle"] label span {{
+    color: #1A1A2E !important;
+}}
+.main [data-testid="stDataFrame"] {{
+    --gdg-bg-cell: #FFFFFF;
+    --gdg-bg-header: #F7F7FC;
+    --gdg-bg-header-has-focus: #EEEEF8;
+    --gdg-bg-header-hovered: #EEEEF8;
+    --gdg-text-dark: #1A1A2E;
+    --gdg-text-medium: #444466;
+    --gdg-text-light: #6666A0;
+    --gdg-text-header: #1A1A2E;
+    --gdg-border-color: rgba(0,0,0,0.10);
+    background-color: #FFFFFF !important;
+}}
+.main [data-testid="stDataFrame"] > div,
+.main [data-testid="stDataFrame"] [data-testid="glideDataEditor"],
+.main [data-testid="stDataFrame"] .dvn-scroller {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+}}
+.main [data-baseweb="popover"],
+.main [data-baseweb="popover"] li,
+.main [data-baseweb="menu"] li {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+}}
+"""
+
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -593,6 +668,7 @@ header[data-testid="stHeader"] {{
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
 }}
+{light_widgets_css}
 </style>
 """, unsafe_allow_html=True)
 

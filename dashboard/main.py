@@ -74,6 +74,120 @@ def inject_css(dark_mode: bool):
         card_grad   = "linear-gradient(135deg,rgba(130,80,255,0.06),rgba(0,210,170,0.02))"
         story_grad  = "linear-gradient(135deg,rgba(130,80,255,0.04),rgba(255,255,255,0))"
 
+    light_widgets_css = ""
+    if not dark_mode:
+        light_widgets_css = """
+/* ── Mode clair : forcer thème clair sur widgets Streamlit ── */
+.stApp {{
+    color-scheme: light !important;
+}}
+.stApp [data-testid="stAppViewContainer"],
+.stApp [data-testid="stMainBlockContainer"],
+.stApp .main {{
+    color: #1A1A2E !important;
+}}
+.stApp [data-testid="stWidgetLabel"] p,
+.stApp [data-testid="stWidgetLabel"] span,
+.stApp [data-testid="stMarkdownContainer"] p,
+.stApp [data-testid="stMarkdownContainer"] strong,
+.stApp [data-testid="stMarkdownContainer"] li,
+.stApp [data-testid="stCaption"],
+.stApp label[data-testid="stWidgetLabel"] {{
+    color: #1A1A2E !important;
+}}
+/* Selectbox */
+.stApp [data-testid="stSelectbox"] div[data-baseweb="select"],
+.stApp [data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.14) !important;
+}}
+.stApp [data-testid="stSelectbox"] div[data-baseweb="select"] *:not(svg):not(path) {{
+    color: #1A1A2E !important;
+    -webkit-text-fill-color: #1A1A2E !important;
+}}
+/* Champs texte / numériques */
+.stApp [data-testid="stTextInput"] > div,
+.stApp [data-testid="stNumberInput"] > div,
+.stApp [data-testid="stNumberInput"] [data-baseweb="input"],
+.stApp [data-testid="stTextInput"] input,
+.stApp [data-testid="stNumberInput"] input {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.14) !important;
+}}
+.stApp [data-testid="stNumberInput"] button {{
+    background-color: #EEEEF8 !important;
+    color: #1A1A2E !important;
+    border-color: rgba(0,0,0,0.12) !important;
+}}
+.stApp [data-testid="stNumberInput"] button:hover {{
+    background-color: #E0E0F0 !important;
+}}
+/* Slider */
+.stApp [data-testid="stSlider"] [data-testid="stWidgetLabel"] p,
+.stApp [data-testid="stSlider"] [data-testid="stTickBarMin"],
+.stApp [data-testid="stSlider"] [data-testid="stTickBarMax"],
+.stApp [data-testid="stSlider"] [data-testid="stThumbValue"] {{
+    color: #1A1A2E !important;
+}}
+/* Radio */
+.stApp [data-testid="stRadio"] label,
+.stApp [data-testid="stRadio"] label p,
+.stApp [data-testid="stRadio"] label span,
+.stApp [data-testid="stRadio"] [role="radiogroup"] label,
+.stApp [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
+    color: #1A1A2E !important;
+}}
+/* Toggle (équipements, confort…) */
+.stApp [data-testid="stToggle"] label,
+.stApp [data-testid="stToggle"] label p,
+.stApp [data-testid="stToggle"] label span,
+.stApp [data-testid="stToggle"] [data-testid="stWidgetLabel"] p,
+.stApp [data-testid="stToggle"] [data-testid="stMarkdownContainer"] p {{
+    color: #1A1A2E !important;
+}}
+/* Menus déroulants ouverts */
+.stApp [data-baseweb="popover"],
+.stApp [data-baseweb="popover"] li,
+.stApp [data-baseweb="menu"],
+.stApp [data-baseweb="menu"] li {{
+    background-color: #FFFFFF !important;
+    color: #1A1A2E !important;
+}}
+/* BaseWeb input (conteneurs sombres par défaut Streamlit) */
+.stApp [data-baseweb="input"],
+.stApp [data-baseweb="input"] > div {{
+    background-color: #FFFFFF !important;
+}}
+.stApp [data-baseweb="input"] input {{
+    color: #1A1A2E !important;
+    -webkit-text-fill-color: #1A1A2E !important;
+}}
+/* Tableaux HTML (mode clair) */
+.ga-table-wrap {{
+    overflow-x: auto; margin: 10px 0 16px;
+    border: 1px solid rgba(0,0,0,0.10); border-radius: 14px;
+}}
+.ga-table-wrap table.ga-table {{
+    width: 100%; border-collapse: collapse;
+    font-family: 'Outfit', sans-serif; font-size: 0.86rem;
+}}
+.ga-table-wrap table.ga-table thead th {{
+    background: #F7F7FC !important; color: #1A1A2E !important;
+    padding: 11px 14px; text-align: left; font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,0.08);
+}}
+.ga-table-wrap table.ga-table tbody td {{
+    background: #FFFFFF !important; color: #1A1A2E !important;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}}
+.ga-table-wrap table.ga-table tbody tr:hover td {{
+    background: #F3F3FA !important;
+}}
+"""
+
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -573,6 +687,7 @@ header[data-testid="stHeader"] {{
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
 }}
+{light_widgets_css}
 </style>
 """, unsafe_allow_html=True)
 
@@ -620,6 +735,15 @@ def kpi_row(items):
 
 def section_label(text):
     st.markdown(f'<div class="section-label">{text}</div>', unsafe_allow_html=True)
+
+
+def show_table(df, theme, *, show_index=False):
+    """Affiche un tableau lisible selon le thème (HTML en clair, dataframe en sombre)."""
+    if theme.get("is_dark", True):
+        st.dataframe(df, use_container_width=True, hide_index=not show_index)
+        return
+    html = df.to_html(index=show_index, escape=True, classes="ga-table", border=0)
+    st.markdown(f'<div class="ga-table-wrap">{html}</div>', unsafe_allow_html=True)
 
 def story_block(title, content):
     st.markdown(f'''<div class="story-block">
@@ -688,6 +812,10 @@ def _apply_light_plot_style(fig, theme):
             textfont=dict(color=tc),
         )
     fig.update_annotations(font=dict(color=tc, size=11))
+    fig.update_layout(
+        xaxis=dict(color=tc2, title=dict(font=dict(color=tc))),
+        yaxis=dict(color=tc2, title=dict(font=dict(color=tc))),
+    )
     if any(getattr(t, "type", None) == "pie" for t in fig.data):
         fig.update_layout(margin=dict(l=24, r=110, t=50, b=40))
 
@@ -1007,7 +1135,7 @@ def page_delay(theme):
                     En_retard=f"{(sub>0).mean()*100:.1f}%",
                     Tres_en_retard=f"{(sub>60).mean()*100:.1f}%",
                 ))
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            show_table(pd.DataFrame(rows), theme)
 
             story_block(
                 "Lecture",
@@ -1099,7 +1227,7 @@ def page_delay(theme):
                 Bloquées=f"{sr['blocked']} ({sr['pct_blocked']}%)",
                 Efficacité=f"{sr['efficiency']}x"
             ))
-        st.dataframe(pd.DataFrame(comp), use_container_width=True, hide_index=True)
+        show_table(pd.DataFrame(comp), theme)
 
         section_label("Distribution des délais entre locations")
         fig = go.Figure()
@@ -1330,7 +1458,7 @@ def page_pricing(theme):
                         f"fourchette **{similar['rental_price_per_day'].min()}€ – {similar['rental_price_per_day'].max()}€** "
                         f"(moy. **{similar['rental_price_per_day'].mean():.0f}€**)"
                     )
-                    st.dataframe(similar.head(10), use_container_width=True, hide_index=True)
+                    show_table(similar.head(10), theme)
                 else:
                     st.info("Aucun véhicule similaire trouvé dans la flotte avec ces caractéristiques exactes.")
 
@@ -1479,7 +1607,7 @@ def page_pricing(theme):
         section_label("Tableau récapitulatif")
         disp = imp_df.rename(columns={"feature":"Équipement","Avec":"Avec (€)","Sans":"Sans (€)","diff":"Δ (€)"})
         disp = disp.sort_values("Δ (€)", ascending=False)
-        st.dataframe(disp, use_container_width=True, hide_index=True)
+        show_table(disp, theme)
 
     # ════════ FAQ PRICING ════════
     with tab4:
@@ -1556,10 +1684,10 @@ def page_settings(theme):
             fancy_divider()
             section_label("Gestion des utilisateurs (Admin)")
             users = _load_users()
-            st.dataframe(pd.DataFrame([
+            show_table(pd.DataFrame([
                 {"Identifiant": k, "Nom": v.get("name",""), "Rôle": v.get("role","")}
                 for k, v in users.items()
-            ]), use_container_width=True, hide_index=True)
+            ]), theme)
 
             with st.expander("➕ Ajouter un utilisateur"):
                 c1, c2, c3, c4 = st.columns(4)
@@ -1608,7 +1736,7 @@ def page_settings(theme):
                         st.markdown(f"- `{col}` : {cnt:,} ({cnt/len(dd)*100:.1f}%)")
                 else:
                     st.markdown("**Valeurs manquantes :** Aucune ✅")
-                st.dataframe(dd.describe().round(1).T, use_container_width=True)
+                show_table(dd.describe().round(1).T, theme, show_index=True)
             except Exception as e:
                 st.error(str(e))
 
@@ -1619,7 +1747,7 @@ def page_settings(theme):
                 st.markdown(f"**Forme :** {dp.shape[0]:,} lignes × {dp.shape[1]} colonnes")
                 st.markdown(f"**Mémoire :** {dp.memory_usage(deep=True).sum()/1024:.0f} Ko")
                 st.markdown("**Valeurs manquantes :** Aucune ✅")
-                st.dataframe(dp.describe().round(1).T, use_container_width=True)
+                show_table(dp.describe().round(1).T, theme, show_index=True)
             except Exception as e:
                 st.error(str(e))
 
