@@ -84,6 +84,7 @@ def inject_css(dark_mode: bool):
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 /* ── Reset & base ── */
 :root {{
@@ -167,7 +168,26 @@ h1, h2, h3 {{ font-family: var(--font-h) !important; font-weight: 700; }}
 h1 {{ font-size: 2rem; letter-spacing: -0.5px; }}
 h2 {{ font-size: 1.4rem; }}
 h3 {{ font-size: 1.1rem; }}
-p, li, span, label {{ font-family: var(--font-b) !important; }}
+p, li, span:not([data-testid="stIconMaterial"]), label {{ font-family: var(--font-b) !important; }}
+
+/* ── Icônes Material Streamlit (évite arrow_right, keyboard_double_arrow_right en texte) ── */
+[data-testid="stIconMaterial"] {{
+    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    -webkit-font-feature-settings: "liga" !important;
+    font-feature-settings: "liga" !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stIconMaterial"],
+header[data-testid="stHeader"] [data-testid="stIconMaterial"],
+[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"],
+[data-testid="collapsedControl"] [data-testid="stIconMaterial"] {{
+    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+}}
 
 /* ── Cards KPI ── */
 .kpi-wrap {{ display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }}
@@ -563,6 +583,15 @@ footer {{ visibility: hidden; }}
 header[data-testid="stHeader"] {{
     background: var(--bg) !important;
     border-bottom: 1px solid var(--border);
+}}
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="collapsedControl"] button {{
+    color: var(--text2) !important;
+}}
+[data-testid="collapsedControl"] {{
+    background: var(--bg2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--r) !important;
 }}
 </style>
 """, unsafe_allow_html=True)

@@ -77,6 +77,7 @@ def inject_css(dark_mode: bool):
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 /* ── Reset & base ── */
 :root {{
@@ -160,7 +161,26 @@ h1, h2, h3 {{ font-family: var(--font-h) !important; font-weight: 700; }}
 h1 {{ font-size: 2rem; letter-spacing: -0.5px; }}
 h2 {{ font-size: 1.4rem; }}
 h3 {{ font-size: 1.1rem; }}
-p, li, span, label {{ font-family: var(--font-b) !important; }}
+p, li, span:not([data-testid="stIconMaterial"]), label {{ font-family: var(--font-b) !important; }}
+
+/* ── Icônes Material Streamlit (évite arrow_right, keyboard_double_arrow_right en texte) ── */
+[data-testid="stIconMaterial"] {{
+    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    -webkit-font-feature-settings: "liga" !important;
+    font-feature-settings: "liga" !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stIconMaterial"],
+header[data-testid="stHeader"] [data-testid="stIconMaterial"],
+[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"],
+[data-testid="collapsedControl"] [data-testid="stIconMaterial"] {{
+    font-family: "Material Symbols Rounded", "Material Icons", sans-serif !important;
+}}
 
 /* ── Cards KPI ── */
 .kpi-wrap {{ display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }}
@@ -544,31 +564,14 @@ header[data-testid="stHeader"] {{
     border-bottom: 1px solid var(--border);
 }}
 
-/* ── Fix sidebar collapse button — hide icon label text, show clean chevron ── */
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="collapsedControl"] button {{
+    color: var(--text2) !important;
+}}
 [data-testid="collapsedControl"] {{
     background: var(--bg2) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
-}}
-button[data-testid="baseButton-headerNoPadding"],
-[data-testid="stSidebarCollapseButton"] button {{
-    color: var(--text2) !important;
-}}
-/* Hide the material icon text "keyboard_double_arrow_left" etc */
-[data-testid="stSidebarCollapseButton"] button span,
-[data-testid="collapsedControl"] button span {{
-    font-size: 0 !important;
-}}
-[data-testid="stSidebarCollapseButton"] button span::before,
-[data-testid="collapsedControl"] button span::before {{
-    content: "‹" !important;
-    font-size: 20px !important;
-    font-family: var(--font-b) !important;
-    line-height: 1;
-    display: block;
-}}
-[data-testid="collapsedControl"] button span::before {{
-    content: "›" !important;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -807,7 +810,7 @@ def page_delay(theme):
     section_label("Indicateurs clés")
     late_n = int((delay > 0).sum())
     kpi_row([
-        ("Locations totales", f"{len(df):,}", None, "neu"),
+        ("Locations totales", f"{len(df):,}", '-', "neu"),
         ("Taux de complétion", f"{(df['state']=='ended').mean()*100:.1f}%", "objectif 85%", "pos"),
         ("Retours en retard", f"{late_pct:.1f}%", f"{late_n:,} locations", "neg"),
         ("Délai moyen", f"{delay.mean():.0f} min", f"médiane {delay.median():.0f} min", "neu"),
