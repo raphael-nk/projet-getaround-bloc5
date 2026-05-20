@@ -19,4 +19,12 @@ dependencies = [
     "statsmodels>=0.14.6",
     "streamlit>=1.45.0",
     "xgboost>=3.2.0",
+    "mlflow>=1.27.0,<2",
+    "protobuf>=3.20,<5",
+    "setuptools>=69.0,<81",
+    "sqlalchemy>=1.4.0,<2.0",
+    "boto3>=1.43.11",
+    "psycopg2-binary>=2.9.12",
+    "python-dotenv>=1.2.2",
+    "awscli>=1.45.11",
 ]
