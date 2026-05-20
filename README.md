@@ -30,33 +30,47 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 
 | Livrable | Emplacement |
 |----------|-------------|
-| Dashboard en production | [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
-| Code source | Ce dépôt GitHub |
-| API documentée en ligne | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
-| Endpoint `POST /predict` | `api/main.py` |
-| Notebooks d’analyse & ML | `notebooks/` |
-| Tracking MLflow | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) — expérience `getaround-pricing` |
+| Dashboard en production | [raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) — submodule [`dashboard/`](dashboard/) → [Space HF](https://huggingface.co/spaces/raphael-nk/getaround-dashboard) |
+| API documentée en ligne | [raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) — submodule [`api/`](api/) → [Space HF](https://huggingface.co/spaces/raphael-nk/getaround-api) |
+| Endpoint `POST /predict` | [`api/main.py`](api/main.py) (submodule API) |
+| Tracking MLflow | [raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) — submodule [`mlflow/`](mlflow/) → [Space HF](https://huggingface.co/spaces/raphael-nk/getaround-mlflow) — expérience `getaround-pricing` |
+| Code source monorepo | Racine GitHub + **3 submodules** (voir [Structure](#structure-du-projet) et [`.gitmodules`](.gitmodules)) |
+| Notebooks d’analyse & ML | `notebooks/` (monorepo uniquement) |
+
+---
+
+## Déploiement — vue d’ensemble
+
+| Service | URL production | Repo Hugging Face Space |
+|---------|----------------|-------------------------|
+| **Dashboard** | [raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) | [raphael-nk/getaround-dashboard](https://huggingface.co/spaces/raphael-nk/getaround-dashboard) |
+| **API** | [raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) · [/docs](https://raphael-nk-getaround-api.hf.space/docs) | [raphael-nk/getaround-api](https://huggingface.co/spaces/raphael-nk/getaround-api) |
+| **MLflow** | [raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) | [raphael-nk/getaround-mlflow](https://huggingface.co/spaces/raphael-nk/getaround-mlflow) |
+
+**Données (dashboard en prod)** : `s3://amzn-jedha-39/datasets/getaround/`  
+Fichiers attendus : `get_around_delay_analysis.xlsx`, `get_around_pricing_project.csv`
+
+Chaque service est un **Docker Space** (pas de `docker-compose`). Le code des Spaces est versionné dans ce dépôt via des **submodules Git** (voir ci-dessous).
 
 ---
 
 ## Structure du projet
 
+Le dépôt principal (monorepo GitHub) contient l’analyse, les notebooks et les données locales. Les **trois services en production** sont des **submodules Git** : chaque dossier pointe vers un **Hugging Face Docker Space** (même historique Git que le Space).
+
+### Monorepo (racine)
+
 ```
 projet-getaround-bloc5/
-├── api/
-│   ├── main.py                 # FastAPI — /health, /predict, /docs
-│   ├── Dockerfile              # Image API (contexte api/)
-│   ├── Dockerfile.monorepo     # Image API + .env racine
-│   ├── entrypoint.sh
-│   └── models/                 # Modèle exporté (fallback local)
-├── dashboard/
-│   ├── main.py                 # Dashboard Streamlit (delay + pricing + API)
-│   ├── Dockerfile              # Space HF — datasets via S3 au démarrage
-│   ├── entrypoint.sh
-│   ├── sync_data_from_s3.py
-│   ├── users.json.dist         # Template utilisateurs (copier → users.json)
-│   └── assets/
-├── data/
+├── .gitmodules                 # déclaration des 3 submodules → Spaces HF
+├── .env.dist                   # template variables (copier → .env)
+├── pyproject.toml              # dépendances uv (notebooks, dev local)
+├── uv.lock
+├── requirements.txt
+├── README.md
+├── LICENSE
+├── assets/                     # visuels doc / présentation
+├── data/                       # datasets locaux (notebooks & dev)
 │   ├── get_around_delay_analysis.xlsx
 │   └── get_around_pricing_project.csv
 ├── notebooks/
@@ -64,11 +78,121 @@ projet-getaround-bloc5/
 │   ├── 02_pricing_eda_feature_eng.ipynb
 │   └── 03_model_training_eval.ipynb
 ├── outputs/
-│   ├── images/                 # Figures exportées (présentation)
-│   └── models/
-├── .env.dist                   # Variables d'environnement (template)
-├── pyproject.toml
-└── README.md
+│   ├── images/                 # figures exportées (notebook 03)
+│   └── models/                 # joblib, CSV comparaison modèles
+├── api/                        # ◆ submodule — voir ci-dessous
+├── dashboard/                  # ◆ submodule — voir ci-dessous
+└── mlflow/                     # ◆ submodule — voir ci-dessous
+```
+
+### Submodule `api/` → [raphael-nk/getaround-api](https://huggingface.co/spaces/raphael-nk/getaround-api)
+
+**Space en ligne :** [https://raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) · [Swagger `/docs`](https://raphael-nk-getaround-api.hf.space/docs)
+
+```
+api/                            # git submodule
+├── Dockerfile                  # image Docker Space
+├── entrypoint.sh               # uvicorn, port $PORT (7860 sur HF)
+├── main.py                     # FastAPI — /health, /predict, /docs
+├── __init__.py
+├── requirements.txt
+├── README.md                   # frontmatter HF (sdk: docker)
+├── models/
+│   └── .gitkeep                # fallback local best_pricing_model_xgb.pkl
+├── .gitignore
+└── .gitattributes
+```
+
+### Submodule `mlflow/` → [raphael-nk/getaround-mlflow](https://huggingface.co/spaces/raphael-nk/getaround-mlflow)
+
+**Space en ligne :** [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space)
+
+```
+mlflow/                         # git submodule
+├── Dockerfile                  # MLflow server 1.27, Python 3.11
+├── entrypoint.sh               # mlflow server (backend Postgres + S3)
+├── requirements.txt
+├── README.md                   # frontmatter HF (sdk: docker)
+└── .gitattributes
+```
+
+### Submodule `dashboard/` → [raphael-nk/getaround-dashboard](https://huggingface.co/spaces/raphael-nk/getaround-dashboard)
+
+**Space en ligne :** [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space)
+
+```
+dashboard/                      # git submodule
+├── Dockerfile                  # Streamlit — sync S3 au démarrage
+├── entrypoint.sh               # sync_data_from_s3.py puis streamlit
+├── sync_data_from_s3.py        # télécharge datasets depuis GETAROUND_DATA_S3_URI
+├── main.py                     # UI delay analysis + pricing + appels API
+├── requirements.txt
+├── README.md                   # variables HF + URI S3
+├── users.json.dist             # template auth (copier → users.json en local)
+├── assets/
+│   └── logo.png
+├── data/                       # optionnel en local (.gitignore sur le Space)
+│   ├── get_around_delay_analysis.xlsx
+│   └── get_around_pricing_project.csv
+├── .gitignore                  # data/, users.json
+└── .gitattributes
+```
+
+> **Note :** sur le Space HF, `dashboard/data/` n’est **pas** poussé dans Git (fichiers binaires). En production, les datasets viennent de **`s3://amzn-jedha-39/datasets/getaround/`** via `sync_data_from_s3.py`.
+
+Le monorepo ne stocke qu’un **pointeur de commit** (gitlink) par submodule ; le code déployé est celui des repos Spaces ci-dessus.
+
+---
+
+## Submodules Git ↔ Hugging Face Spaces
+
+Configuration dans [`.gitmodules`](.gitmodules) :
+
+| Dossier | Space Hugging Face | URL Space (repo) | URL production |
+|---------|-------------------|------------------|----------------|
+| `mlflow/` | `raphael-nk/getaround-mlflow` | [huggingface.co/spaces/raphael-nk/getaround-mlflow](https://huggingface.co/spaces/raphael-nk/getaround-mlflow) | [raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) |
+| `api/` | `raphael-nk/getaround-api` | [huggingface.co/spaces/raphael-nk/getaround-api](https://huggingface.co/spaces/raphael-nk/getaround-api) | [raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) |
+| `dashboard/` | `raphael-nk/getaround-dashboard` | [huggingface.co/spaces/raphael-nk/getaround-dashboard](https://huggingface.co/spaces/raphael-nk/getaround-dashboard) | [raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
+
+Remote Git de chaque submodule (branche `main`) :
+
+```ini
+# .gitmodules (extrait)
+[submodule "mlflow"]
+    path = mlflow
+    url = https://huggingface.co/spaces/raphael-nk/getaround-mlflow
+[submodule "api"]
+    path = api
+    url = https://huggingface.co/spaces/raphael-nk/getaround-api
+[submodule "dashboard"]
+    path = dashboard
+    url = https://huggingface.co/spaces/raphael-nk/getaround-dashboard
+```
+
+### Cloner le projet complet
+
+```bash
+git clone --recurse-submodules <url-du-repo>
+cd projet-getaround-bloc5
+```
+
+Si le dépôt est déjà cloné sans submodules :
+
+```bash
+git submodule update --init --recursive
+```
+
+### Modifier un service déployé
+
+```bash
+cd mlflow   # ou api / dashboard
+# … éditer, commit …
+git push origin main
+
+cd ..
+git add mlflow   # ou api / dashboard
+git commit -m "Bump mlflow submodule"
+git push
 ```
 
 ---
@@ -77,23 +201,25 @@ projet-getaround-bloc5/
 
 - **Python** ≥ 3.12
 - **[uv](https://docs.astral.sh/uv/)** (gestionnaire de dépendances)
-- Données dans `data/` (fichiers fournis par Jedha)
-- Pour MLflow distant : PostgreSQL + stockage S3 (MinIO/AWS) configurés dans `.env`
+- **Git** avec support submodules
+- Données dans `data/` à la racine (notebooks) ou accès S3 pour le dashboard
+- **MLflow** : PostgreSQL (Neon) + artefacts S3 — voir `.env`
+- **AWS** : lecture du bucket datasets pour le dashboard en prod (`GETAROUND_DATA_S3_URI`)
 
 ---
 
 ## Installation locale
 
 ```bash
-git clone <url-du-repo>
+git clone --recurse-submodules <url-du-repo>
 cd projet-getaround-bloc5
 
 uv sync
 cp .env.dist .env
-# Éditer .env avec vos identifiants MLflow / AWS
+# Éditer .env (MLflow, AWS, GETAROUND_API_URL, GETAROUND_DATA_S3_URI, …)
 
 cp dashboard/users.json.dist dashboard/users.json
-# Éditer dashboard/users.json si besoin
+# Éditer dashboard/users.json si besoin (connexion Streamlit)
 ```
 
 ---
@@ -108,10 +234,13 @@ Copier `.env.dist` vers `.env` et renseigner :
 | `MLFLOW_SERVER_URI` | URL HTTP du tracking client / API (prod : `https://raphael-nk-getaround-mlflow.hf.space`, local : `http://127.0.0.1:5000`) |
 | `MLFLOW_EXPERIMENT` | Nom de l’expérience (défaut : `getaround-pricing`) |
 | `MLFLOW_PRODUCTION_RUN_ID` | *(optionnel)* Forcer un run production précis |
-| `ARTIFACT_ROOT` | Racine artefacts S3 (`s3://...`) |
-| `AWS_*` / `MLFLOW_S3_ENDPOINT_URL` | Credentials stockage artefacts |
-| `GETAROUND_API_URL` | API pricing (prod : `https://raphael-nk-getaround-api.hf.space`) |
-| `GETAROUND_DATA_S3_URI` | Datasets dashboard (ex. `s3://amzn-jedha-39/datasets/getaround/`) |
+| `MLFLOW_PRODUCTION_RUN_NAME` | *(optionnel)* Nom du run (défaut : `production-best-model`) |
+| `ARTIFACT_ROOT` | Racine artefacts MLflow (`s3://...`) |
+| `MLFLOW_S3_ENDPOINT_URL` | Endpoint S3 (ex. `https://s3.eu-west-3.amazonaws.com`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | Credentials AWS (MLflow artefacts + sync dashboard) |
+| `GETAROUND_API_URL` | API pricing (prod : `https://raphael-nk-getaround-api.hf.space`, local : `http://127.0.0.1:8000`) |
+| `GETAROUND_DATA_S3_URI` | Préfixe S3 datasets dashboard : `s3://amzn-jedha-39/datasets/getaround/` |
+| `DATA_DIR` | *(optionnel)* Forcer le dossier data du dashboard |
 
 ---
 
@@ -157,17 +286,15 @@ Lancer le notebook 3 **après** le serveur pour logger les runs. Sans serveur, l
 
 ### MLflow en Docker (sans Compose)
 
-Un seul **`mlflow/Dockerfile`** (pas de `docker-compose`, compatible avec les environnements qui n’acceptent qu’une image Docker, ex. **Hugging Face Docker Space**).
+Build depuis le dossier **`mlflow/`** (submodule, contexte = ce dossier) :
 
 ```bash
-# depuis la racine du dépôt
-docker build -f mlflow/Dockerfile -t getaround-mlflow:latest .
-
-# variables depuis .env local (recommandé si vous ne voulez pas baker les secrets dans l’image)
-docker run --rm -p 5000:5000 --env-file .env getaround-mlflow:latest
+cd mlflow
+docker build -t getaround-mlflow:latest .
+docker run --rm -p 5000:5000 --env-file ../.env getaround-mlflow:latest
 ```
 
-**Hugging Face :** renseigner `MLFLOW_BACKEND_STORE_URI`, `ARTIFACT_ROOT` et les clés AWS / S3 dans les **variables / secrets** du Space. L’image écoute **`$PORT`** (défaut **5000** en local). Le conteneur fait `source /app/.env` au démarrage : si ce fichier contient les mêmes clés que le Space, les valeurs du fichier **priment** ; pour n’utiliser que les variables HF, évitez de baker un `.env` avec ces clés ou laissez un `/app/.env` minimal (ex. uniquement `.env.dist` sans secrets réels).
+**Variables Space HF** (Settings → Variables and secrets) : `MLFLOW_BACKEND_STORE_URI`, `ARTIFACT_ROOT`, `AWS_*`, `MLFLOW_S3_ENDPOINT_URL`. Port : **`$PORT`** (7860 sur HF, 5000 en local).
 
 ---
 
@@ -186,17 +313,15 @@ uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 ### API en Docker (sans Compose)
 
-**`api/Dockerfile.monorepo`** : build depuis la racine (`.env` copié depuis la racine du dépôt).
+Build depuis le dossier **`api/`** (submodule) :
 
 ```bash
-docker build -f api/Dockerfile.monorepo -t getaround-api:latest .
-docker run --rm -p 7860:7860 getaround-api:latest
-# ou variables au runtime : docker run --rm -p 7860:7860 --env-file .env getaround-api:latest
+cd api
+docker build -t getaround-api:latest .
+docker run --rm -p 7860:7860 --env-file ../.env getaround-api:latest
 ```
 
-**`api/Dockerfile`** : build depuis `api/` (ex. Space HF) — `docker run --env-file ../.env` si `.env` n’est pas dans l’image.
-
-Équivalent conteneur (sans `--reload`) : `uvicorn api.main:app --host 0.0.0.0 --port 7860` ; le port suit **`$PORT`** (défaut **7860**).
+**Variables Space HF** : `MLFLOW_SERVER_URI=https://raphael-nk-getaround-mlflow.hf.space`, `MLFLOW_EXPERIMENT`, `MLFLOW_PRODUCTION_RUN_NAME`, `AWS_*` (chargement modèle depuis MLflow + S3). Pas de `.pkl` requis sur HF si le run production est disponible.
 
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
@@ -323,7 +448,16 @@ docker run --rm -p 7860:7860 \
 
 Le conteneur écoute **`${PORT:-7860}`** (port imposé par Hugging Face).
 
-**Données :** en local, `dashboard/data/` puis `data/` à la racine. Sur le **Space dashboard HF**, les fichiers ne sont pas dans Git : ils sont téléchargés depuis **`GETAROUND_DATA_S3_URI`** (ex. `s3://amzn-jedha-39/datasets/getaround/`) au démarrage via `sync_data_from_s3.py` (credentials **`AWS_*`** dans les secrets HF).
+**Données :** en local, `dashboard/data/` puis `data/` à la racine. Sur le **Space dashboard HF**, les fichiers ne sont pas dans Git : ils sont téléchargés depuis **`GETAROUND_DATA_S3_URI`** au démarrage via `sync_data_from_s3.py`.
+
+**Variables Space HF (dashboard)** — détail dans [`dashboard/README.md`](dashboard/README.md) :
+
+| Variable | Description |
+|----------|-------------|
+| `GETAROUND_DATA_S3_URI` | `s3://amzn-jedha-39/datasets/getaround/` |
+| `GETAROUND_API_URL` | `https://raphael-nk-getaround-api.hf.space` |
+| `AWS_*` | Lecture S3 (secrets pour clés) |
+| `PORT` | `7860` |
 
 **Fonctionnalités :**
 
@@ -341,13 +475,14 @@ Pour appeler l’API en production depuis le dashboard : `GETAROUND_API_URL=http
 
 | Service | URL |
 |---------|-----|
-| **MLflow** | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) |
+| **Dashboard** | [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
 | **API** | [https://raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) |
 | **Documentation API** | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
+| **Health API** | [https://raphael-nk-getaround-api.hf.space/health](https://raphael-nk-getaround-api.hf.space/health) |
 | **Predict** | [https://raphael-nk-getaround-api.hf.space/predict](https://raphael-nk-getaround-api.hf.space/predict) |
-| **Dashboard** | [https://raphael-nk-getaround-dashboard.hf.space](https://raphael-nk-getaround-dashboard.hf.space) |
+| **MLflow** | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) |
 
-**Exemple production :**
+**Exemple `POST /predict` (production) :**
 
 ```bash
 curl -i -H "Content-Type: application/json" -X POST \
@@ -359,10 +494,22 @@ curl -i -H "Content-Type: application/json" -X POST \
 
 ## Données
 
-Télécharger / placer dans `data/` :
+### Local (notebooks & dev)
+
+Placer à la racine du monorepo dans **`data/`** :
 
 1. **Delay Analysis** → `get_around_delay_analysis.xlsx`
 2. **Pricing Optimization** → `get_around_pricing_project.csv`
+
+### Production (dashboard sur Hugging Face)
+
+Les binaires ne sont **pas** dans le repo Git du Space (rejet HF). Ils sont hébergés sur **S3** :
+
+**`s3://amzn-jedha-39/datasets/getaround/`**
+
+Au démarrage du conteneur dashboard, `sync_data_from_s3.py` télécharge les deux fichiers vers `/app/data`. Configurer **`GETAROUND_DATA_S3_URI`** et les credentials **`AWS_*`** dans les secrets du Space.
+
+En local, le dashboard résout les chemins dans cet ordre : `dashboard/data/` → `data/` (racine) → variable **`DATA_DIR`**.
 
 ---
 
@@ -372,8 +519,9 @@ Télécharger / placer dans `data/` :
 - **Pandas** · **scikit-learn** · **XGBoost** · **Optuna**
 - **FastAPI** · **Uvicorn**
 - **Streamlit**
-- **MLflow 1.27** (tracking + artefacts S3)
-- **PostgreSQL** · **boto3**
+- **MLflow 1.27** (tracking + artefacts S3) — Space Docker dédié
+- **PostgreSQL** (Neon) · **boto3** (artefacts MLflow + sync datasets dashboard)
+- **Hugging Face Spaces** (Docker) — déploiement API, MLflow, dashboard
 
 ---
 
