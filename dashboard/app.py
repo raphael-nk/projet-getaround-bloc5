@@ -61,10 +61,19 @@ st.markdown("""
     --warn: #FDCB6E; --bad: #E17055; --info: #74B9FF;
 }
 .stApp { font-family: 'DM Sans', sans-serif; }
+
+/* Sidebar — readable text (width controlled by Streamlit collapse/expand) */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
     border-right: 1px solid rgba(255,255,255,0.06);
 }
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stMarkdown {
+    color: #e8e8f0 !important;
+}
+section[data-testid="stSidebar"] .stCaption { color: rgba(232,232,240,.65) !important; }
 
 /* ── KPI cards ── */
 .kpi-row { display: flex; gap: 12px; margin-bottom: 16px; }
@@ -116,7 +125,25 @@ section[data-testid="stSidebar"] {
     display:inline-block; font-size:.92rem;
 }
 
-#MainMenu, header, footer { visibility:hidden; }
+/* Hide menu/footer only — keep header + sidebar toggle always visible */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header[data-testid="stHeader"] {
+    visibility: visible !important;
+    display: block !important;
+    background: rgba(14, 17, 23, 0.9);
+}
+header[data-testid="stHeader"] button {
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #e8e8f0 !important;
+}
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+}
 .stPlotlyChart { border-radius:10px; overflow:hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -919,6 +946,13 @@ def page_settings():
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # SIDEBAR + ROUTING
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAV_OPTIONS = [
+    "⏱️ Delay Analysis",
+    "💰 Pricing Predictor",
+    "⚙️ Settings",
+]
+
+
 def main_app():
     with st.sidebar:
         st.markdown("# 🚗 GetAround")
@@ -930,11 +964,12 @@ def main_app():
         st.markdown(f"*{u.get('role','').title()}*")
         st.markdown("")
 
-        page = st.radio("Navigation", [
-            "⏱️ Delay Analysis",
-            "💰 Pricing Predictor",
-            "⚙️ Settings",
-        ], label_visibility="collapsed")
+        page = st.radio(
+            "Navigation",
+            NAV_OPTIONS,
+            label_visibility="collapsed",
+            key="nav_page",
+        )
 
         st.markdown("---")
         st.markdown("##### 📌 Quick Stats")
