@@ -596,12 +596,17 @@ header[data-testid="stHeader"] {{
 </style>
 """, unsafe_allow_html=True)
 
-    return {
+    theme = {
         "plot_tmpl": plot_tmpl,
         "paper_bg": paper_bg,
         "plot_bg": plot_bg,
         "grid_c": grid_c,
+        "is_dark": dark_mode,
     }
+    if not dark_mode:
+        theme["plot_text"] = text
+        theme["plot_text2"] = text2
+    return theme
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # PALETTE COULEURS
@@ -648,6 +653,61 @@ def page_hero(badge, title, subtitle):
 def fancy_divider():
     st.markdown('<div class="fancy-divider"></div>', unsafe_allow_html=True)
 
+def _apply_light_plot_style(fig, theme):
+    """Contraste des textes Plotly en mode clair uniquement."""
+    tc = theme["plot_text"]
+    tc2 = theme["plot_text2"]
+    fig.update_layout(
+        font=dict(family="Outfit", size=12, color=tc),
+        title=dict(font=dict(color=tc)),
+        legend=dict(
+            bgcolor="rgba(255,255,255,0)",
+            borderwidth=0,
+            font=dict(size=11, color=tc),
+        ),
+        coloraxis=dict(
+            colorbar=dict(
+                tickfont=dict(color=tc2, size=10),
+                title=dict(font=dict(color=tc, size=11)),
+            ),
+        ),
+        hoverlabel=dict(
+            bgcolor="#FFFFFF",
+            font_color=tc,
+            bordercolor="rgba(0,0,0,0.12)",
+        ),
+    )
+    fig.update_xaxes(
+        gridcolor=theme["grid_c"],
+        zerolinecolor=theme["grid_c"],
+        tickfont=dict(color=tc2, size=11),
+        title=dict(font=dict(color=tc, size=12)),
+        color=tc2,
+    )
+    fig.update_yaxes(
+        gridcolor=theme["grid_c"],
+        zerolinecolor=theme["grid_c"],
+        tickfont=dict(color=tc2, size=11),
+        title=dict(font=dict(color=tc, size=12)),
+        color=tc2,
+    )
+    fig.update_traces(
+        selector=dict(type="pie"),
+        textposition="outside",
+        textfont=dict(color=tc, size=12),
+        insidetextfont=dict(color="#FFFFFF", size=12),
+        outsidetextfont=dict(color=tc, size=12),
+    )
+    for trace_type in ("bar", "scatter", "funnel"):
+        fig.update_traces(
+            selector=dict(type=trace_type),
+            textfont=dict(color=tc),
+        )
+    fig.update_annotations(font=dict(color=tc, size=11))
+    if any(getattr(t, "type", None) == "pie" for t in fig.data):
+        fig.update_layout(margin=dict(l=24, r=110, t=50, b=40))
+
+
 def styled_fig(fig, theme, title="", h=420):
     fig.update_layout(
         title=dict(text=title, font=dict(size=14, family="Syne"), pad=dict(b=10)),
@@ -661,6 +721,8 @@ def styled_fig(fig, theme, title="", h=420):
         xaxis=dict(gridcolor=theme["grid_c"], zerolinecolor=theme["grid_c"]),
         yaxis=dict(gridcolor=theme["grid_c"], zerolinecolor=theme["grid_c"]),
     )
+    if not theme.get("is_dark", True):
+        _apply_light_plot_style(fig, theme)
     return fig
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
