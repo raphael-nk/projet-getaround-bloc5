@@ -10,24 +10,22 @@ Local files (dashboard/):
 Project files (resolved automatically):
   - data/get_around_delay_analysis.xlsx
   - data/get_around_pricing_project.csv
-  - outputs/models/best_pricing_model_xgb.joblib
+
+Pricing predictions via FastAPI (GETAROUND_API_URL, default http://127.0.0.1:8000).
 """
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 import hashlib
 import json
 import os
 import sys
 from datetime import datetime
 
-try:
-    import joblib
-except ImportError:
-    joblib = None
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import requests
+import streamlit as st
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -36,8 +34,7 @@ except ImportError:
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(DASHBOARD_DIR)
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-MODEL_DIR = os.path.join(PROJECT_ROOT, "outputs", "models")
-MODEL_FILENAME = "best_pricing_model_xgb.joblib"
+API_BASE_URL = os.environ.get("GETAROUND_API_URL", "http://127.0.0.1:8000").rstrip("/")
 THRESHOLD_RANGE = list(range(0, 721, 30))
 USERS_PATH = os.path.join(DASHBOARD_DIR, "users.json")
 
@@ -221,12 +218,31 @@ def load_pricing():
         df = df.drop(columns=["Unnamed: 0"])
     return df
 
-@st.cache_resource
-def load_model():
-    p = os.path.join(MODEL_DIR, MODEL_FILENAME)
-    if os.path.exists(p) and joblib:
-        return joblib.load(p)
+def api_health():
+    """GET /health — returns JSON or None if API unreachable."""
+    try:
+        r = requests.get(f"{API_BASE_URL}/health", timeout=3)
+        if r.status_code == 200:
+            return r.json()
+    except requests.RequestException:
+        pass
     return None
+
+
+def predict_via_api(vehicle: dict) -> float | None:
+    """POST /predict — returns first prediction or None on failure."""
+    try:
+        r = requests.post(
+            f"{API_BASE_URL}/predict",
+            json={"input": [vehicle]},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return float(r.json()["prediction"][0])
+    except requests.RequestException as exc:
+        st.error(f"❌ API request failed: {exc}")
+        return None
+
 
 def build_consecutive(df):
     cons = df[df["previous_ended_rental_id"].notna()].copy()
@@ -503,7 +519,7 @@ def page_delay():
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def page_pricing():
     df = load_pricing()
-    model = load_model()
+    health = api_health()
 
     tab1, tab2, tab3 = st.tabs(["🔮 Price Predictor","📊 Pricing EDA","🏆 Feature Insights"])
 
@@ -536,19 +552,23 @@ def page_pricing():
 
         st.markdown("---")
 
+        if health is None or not health.get("model_loaded"):
+            st.warning(
+                f"⚠️ API unavailable or model not loaded. Start FastAPI: "
+                f"`uvicorn api.main:app --reload` — `{API_BASE_URL}/health`"
+            )
+
         if st.button("⚡ Predict Price", use_container_width=True, type="primary"):
-            if model is None:
-                st.error("❌ Model not found. Train the model and place it at `outputs/models/best_pricing_model_xgb.joblib`.")
-            else:
-                inp = pd.DataFrame([dict(
-                    model_key=model_key, mileage=mileage, engine_power=engine_power,
-                    fuel=fuel, paint_color=paint_color, car_type=car_type,
-                    private_parking_available=parking, has_gps=has_gps,
-                    has_air_conditioning=has_ac, automatic_car=auto,
-                    has_getaround_connect=connect, has_speed_regulator=speed_r,
-                    winter_tires=winter,
-                )])
-                pred = float(model.predict(inp)[0])
+            vehicle = dict(
+                model_key=model_key, mileage=mileage, engine_power=engine_power,
+                fuel=fuel, paint_color=paint_color, car_type=car_type,
+                private_parking_available=parking, has_gps=has_gps,
+                has_air_conditioning=has_ac, automatic_car=auto,
+                has_getaround_connect=connect, has_speed_regulator=speed_r,
+                winter_tires=winter,
+            )
+            pred = predict_via_api(vehicle)
+            if pred is not None:
 
                 st.markdown(
                     f'<div class="pred-box">'
@@ -832,34 +852,31 @@ def page_settings():
                 st.error(str(e))
 
         st.markdown("---")
-        st.markdown("#### 🤖 ML Model")
-        m = load_model()
-        if m:
-            st.markdown("**Status:** ✅ Loaded")
-            if hasattr(m, "named_steps"):
-                st.markdown(f"**Pipeline:** {' → '.join(m.named_steps.keys())}")
-                mdl = m.named_steps.get("model")
-                if mdl:
-                    st.markdown(f"**Algorithm:** {type(mdl).__name__}")
-                    params = mdl.get_params()
-                    show = {k:v for k,v in params.items()
-                            if k in ["n_estimators","max_depth","learning_rate","min_samples_leaf","subsample"]}
-                    if show:
-                        st.json(show)
+        st.markdown("#### 🤖 Pricing API")
+        st.markdown(f"**Base URL:** `{API_BASE_URL}`")
+        health = api_health()
+        if health:
+            st.markdown(f"**Status:** {'✅ OK' if health.get('model_loaded') else '⚠️ Degraded'}")
+            st.json(health)
         else:
-            st.warning("Model not loaded — place `outputs/models/best_pricing_model_xgb.joblib` in the project")
+            st.warning(
+                f"API unreachable at `{API_BASE_URL}`. "
+                "Start with: `uvicorn api.main:app --reload`"
+            )
 
     # ════════ APP CONFIG ════════
     with tab3:
         st.markdown("### ⚙️ Application Config")
 
         st.markdown("#### Required Files")
+        api_model_path = os.path.join(PROJECT_ROOT, "api", "models", "best_pricing_model_xgb.pkl")
         files = {
             "users.json": USERS_PATH,
             "Delay data (.xlsx)": os.path.join(DATA_DIR, "get_around_delay_analysis.xlsx"),
             "Pricing data (.csv)": os.path.join(DATA_DIR, "get_around_pricing_project.csv"),
-            "ML Model (.joblib)": os.path.join(MODEL_DIR, MODEL_FILENAME),
+            "API model (.pkl)": api_model_path,
         }
+        st.markdown(f"**API URL:** `{API_BASE_URL}`")
         for name, path in files.items():
             icon = "✅" if os.path.exists(path) else "❌"
             size = f" ({os.path.getsize(path)/1024:.0f} KB)" if os.path.exists(path) else ""
@@ -925,8 +942,9 @@ def main_app():
             dd = load_delay()
             dp = load_pricing()
             st.caption(f"📊 {len(dd):,} rentals • {len(dp):,} vehicles")
-            m = load_model()
-            st.caption(f"🤖 Model: {'✅' if m else '❌'}")
+            h = api_health()
+            api_ok = h is not None and h.get("model_loaded")
+            st.caption(f"🤖 API: {'✅' if api_ok else '❌'} ({API_BASE_URL})")
         except:
             st.caption("Data not loaded")
 
