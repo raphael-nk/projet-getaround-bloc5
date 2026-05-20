@@ -6,3 +6,7 @@
 	path = api
 	url = https://huggingface.co/spaces/raphael-nk/getaround-api
 	branch = main
+[submodule "dashboard"]
+	path = dashboard
+	url = https://huggingface.co/spaces/raphael-nk/getaround-dashboard
+	branch = main
