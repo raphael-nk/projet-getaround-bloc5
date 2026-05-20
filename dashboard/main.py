@@ -164,14 +164,42 @@ def inject_css(dark_mode: bool):
     color: #1A1A2E !important;
     -webkit-text-fill-color: #1A1A2E !important;
 }}
-/* Tableaux HTML (mode clair) */
+/* Libellés champs (mode clair) */
+.ga-field-label {{
+    display: block;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: #1A1A2E !important;
+    margin: 0 0 0.35rem 0 !important;
+    line-height: 1.3 !important;
+    opacity: 1 !important;
+}}
+.ga-field-label + div[data-testid="stSelectbox"],
+.ga-field-label + div[data-testid="stNumberInput"],
+.ga-field-label + div[data-testid="stToggle"],
+.ga-field-label + div[data-testid="stSlider"],
+.ga-field-label + div[data-testid="stRadio"] {{
+    margin-bottom: 0.65rem;
+}}
+/* Tableaux HTML (mode clair) — pleine largeur comme st.dataframe */
 .ga-table-wrap {{
-    overflow-x: auto; margin: 10px 0 16px;
-    border: 1px solid rgba(0,0,0,0.10); border-radius: 14px;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block;
+    box-sizing: border-box;
+    overflow-x: auto;
+    margin: 10px 0 16px;
+    border: 1px solid rgba(0,0,0,0.10);
+    border-radius: 14px;
 }}
 .ga-table-wrap table.ga-table {{
-    width: 100%; border-collapse: collapse;
-    font-family: 'Outfit', sans-serif; font-size: 0.86rem;
+    width: 100% !important;
+    min-width: 100% !important;
+    table-layout: auto;
+    border-collapse: collapse;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.86rem;
 }}
 .ga-table-wrap table.ga-table thead th {{
     background: #F7F7FC !important; color: #1A1A2E !important;
@@ -743,7 +771,49 @@ def show_table(df, theme, *, show_index=False):
         st.dataframe(df, use_container_width=True, hide_index=not show_index)
         return
     html = df.to_html(index=show_index, escape=True, classes="ga-table", border=0)
-    st.markdown(f'<div class="ga-table-wrap">{html}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="ga-table-wrap" style="width:100%">{html}</motion>',
+        unsafe_allow_html=True,
+    )
+
+def _ga_field_label(text: str):
+    st.markdown(f'<div class="ga-field-label">{text}</div>', unsafe_allow_html=True)
+
+def ga_selectbox(label, options, theme, **kwargs):
+    if theme.get("is_dark", True):
+        return st.selectbox(label, options, **kwargs)
+    _ga_field_label(label)
+    return st.selectbox(label, options, label_visibility="collapsed", **kwargs)
+
+def ga_number_input(label, min_value, max_value, value, step, theme, **kwargs):
+    if theme.get("is_dark", True):
+        return st.number_input(label, min_value, max_value, value, step, **kwargs)
+    _ga_field_label(label)
+    return st.number_input(
+        label, min_value, max_value, value, step,
+        label_visibility="collapsed", **kwargs,
+    )
+
+def ga_toggle(label, value, theme, **kwargs):
+    if theme.get("is_dark", True):
+        return st.toggle(label, value, **kwargs)
+    _ga_field_label(label)
+    return st.toggle(label, value, label_visibility="collapsed", **kwargs)
+
+def ga_slider(label, min_value, max_value, value, step, theme, **kwargs):
+    if theme.get("is_dark", True):
+        return st.slider(label, min_value, max_value, value, step, **kwargs)
+    _ga_field_label(label)
+    return st.slider(
+        label, min_value, max_value, value, step,
+        label_visibility="collapsed", **kwargs,
+    )
+
+def ga_radio(label, options, theme, **kwargs):
+    if theme.get("is_dark", True):
+        return st.radio(label, options, **kwargs)
+    _ga_field_label(label)
+    return st.radio(label, options, label_visibility="collapsed", **kwargs)
 
 def story_block(title, content):
     st.markdown(f'''<div class="story-block">
@@ -1149,16 +1219,17 @@ def page_delay(theme):
 
         c1, c2 = st.columns([2, 1])
         with c1:
-            thresh = st.slider(
+            thresh = ga_slider(
                 "Délai tampon minimum (en minutes)",
-                0, 720, 120, 30,
-                help="Temps de tampon imposé entre deux locations consécutives sur le même véhicule"
+                0, 720, 120, 30, theme,
+                help="Temps de tampon imposé entre deux locations consécutives sur le même véhicule",
             )
         with c2:
-            scope = st.radio(
+            scope = ga_radio(
                 "Périmètre",
                 ["Tous les véhicules", "Connect uniquement", "Mobile uniquement"],
-                horizontal=False, index=1
+                theme,
+                horizontal=False, index=1,
             )
 
         cons_f = cons.copy()
@@ -1380,25 +1451,25 @@ def page_pricing(theme):
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown("**🚘 Véhicule**")
-            model_key   = st.selectbox("Marque", sorted(df["model_key"].unique()), index=3)
-            car_type    = st.selectbox("Type de carrosserie", sorted(df["car_type"].unique()), index=3)
-            fuel        = st.selectbox("Carburant", sorted(df["fuel"].unique()), index=0)
-            paint_color = st.selectbox("Couleur", sorted(df["paint_color"].unique()), index=1)
+            model_key   = ga_selectbox("Marque", sorted(df["model_key"].unique()), theme, index=3)
+            car_type    = ga_selectbox("Type de carrosserie", sorted(df["car_type"].unique()), theme, index=3)
+            fuel        = ga_selectbox("Carburant", sorted(df["fuel"].unique()), theme, index=0)
+            paint_color = ga_selectbox("Couleur", sorted(df["paint_color"].unique()), theme, index=1)
         with c2:
             st.markdown("**⚙️ Caractéristiques mécaniques**")
-            mileage      = st.number_input("Kilométrage (km)", 0, 1_000_000, 120_000, 5000)
-            engine_power = st.number_input("Puissance moteur (ch)", 0, 500, 120, 5)
+            mileage      = ga_number_input("Kilométrage (km)", 0, 1_000_000, 120_000, 5000, theme)
+            engine_power = ga_number_input("Puissance moteur (ch)", 0, 500, 120, 5, theme)
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("**📍 Confort**")
-            has_ac  = st.toggle("Climatisation", True)
-            auto    = st.toggle("Boîte automatique", False)
+            has_ac  = ga_toggle("Climatisation", True, theme)
+            auto    = ga_toggle("Boîte automatique", False, theme)
         with c3:
             st.markdown("**🎛️ Équipements**")
-            has_gps = st.toggle("GPS", True)
-            connect = st.toggle("GetAround Connect", True)
-            parking = st.toggle("Parking privé", False)
-            speed_r = st.toggle("Régulateur de vitesse", True)
-            winter  = st.toggle("Pneus hiver", True)
+            has_gps = ga_toggle("GPS", True, theme)
+            connect = ga_toggle("GetAround Connect", True, theme)
+            parking = ga_toggle("Parking privé", False, theme)
+            speed_r = ga_toggle("Régulateur de vitesse", True, theme)
+            winter  = ga_toggle("Pneus hiver", True, theme)
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("⚡ Estimer le prix", use_container_width=True, type="primary"):
