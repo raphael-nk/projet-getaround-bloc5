@@ -57,6 +57,8 @@ numpy==2.4.5
     #   pandas
     #   pydeck
     #   streamlit
+openpyxl==3.1.5
+    # via projet-getaround-bloc5 (dashboard)
 packaging==26.2
     # via
     #   altair
