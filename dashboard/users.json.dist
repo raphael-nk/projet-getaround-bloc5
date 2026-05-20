@@ -1,0 +1,7 @@
+{
+    "admin": {
+        "password": "getaround2026",
+        "name": "Admin User",
+        "role": "admin"
+    }
+}
