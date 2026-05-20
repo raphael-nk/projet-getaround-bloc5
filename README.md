@@ -32,7 +32,7 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 |----------|-------------|
 | Dashboard en production | Streamlit — voir [Dashboard](#dashboard-streamlit) |
 | Code source | Ce dépôt GitHub |
-| API documentée en ligne | FastAPI `/docs` — URL de prod à renseigner |
+| API documentée en ligne | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
 | Endpoint `POST /predict` | `api/main.py` |
 | Notebooks d’analyse & ML | `notebooks/` |
 | Tracking MLflow | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) — expérience `getaround-pricing` |
@@ -45,6 +45,9 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 projet-getaround-bloc5/
 ├── api/
 │   ├── main.py                 # FastAPI — /health, /predict, /docs
+│   ├── Dockerfile              # Image API (contexte api/)
+│   ├── Dockerfile.monorepo     # Image API + .env racine
+│   ├── entrypoint.sh
 │   └── models/                 # Modèle exporté (fallback local)
 ├── dashboard/
 │   ├── main.py                 # Dashboard Streamlit (delay + pricing + API)
@@ -165,12 +168,30 @@ docker run --rm -p 5000:5000 --env-file .env getaround-mlflow:latest
 
 ## API FastAPI
 
-**Terminal 2 :**
+**Production (Hugging Face Space) :** [https://raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) · [Swagger `/docs`](https://raphael-nk-getaround-api.hf.space/docs) · [`/health`](https://raphael-nk-getaround-api.hf.space/health)
+
+Déployé via le Space [`raphael-nk/getaround-api`](https://huggingface.co/spaces/raphael-nk/getaround-api) (`api/Dockerfile`). Le modèle est chargé depuis MLflow (run production) si le serveur est joignable, sinon depuis `api/models/best_pricing_model_xgb.pkl` en local.
+
+**Terminal 2 (local) :**
 
 ```bash
 set -a && source .env && set +a
 uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### API en Docker (sans Compose)
+
+**`api/Dockerfile.monorepo`** : build depuis la racine (`.env` copié depuis la racine du dépôt).
+
+```bash
+docker build -f api/Dockerfile.monorepo -t getaround-api:latest .
+docker run --rm -p 7860:7860 getaround-api:latest
+# ou variables au runtime : docker run --rm -p 7860:7860 --env-file .env getaround-api:latest
+```
+
+**`api/Dockerfile`** : build depuis `api/` (ex. Space HF) — `docker run --env-file ../.env` si `.env` n’est pas dans l’image.
+
+Équivalent conteneur (sans `--reload`) : `uvicorn api.main:app --host 0.0.0.0 --port 7860` ; le port suit **`$PORT`** (défaut **7860**).
 
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
@@ -216,6 +237,18 @@ uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### cURL
+
+**Production :**
+
+```bash
+curl -s https://raphael-nk-getaround-api.hf.space/health | jq .
+
+curl -i -H "Content-Type: application/json" -X POST \
+  -d '{"input":[{"model_key":"Citroën","mileage":50000,"engine_power":90,"fuel":"diesel","paint_color":"black","car_type":"hatchback","private_parking_available":true,"has_gps":true,"has_air_conditioning":true,"automatic_car":false,"has_getaround_connect":true,"has_speed_regulator":true,"winter_tires":false}]}' \
+  https://raphael-nk-getaround-api.hf.space/predict
+```
+
+**Local :**
 
 ```bash
 curl -i -H "Content-Type: application/json" -X POST \
@@ -271,7 +304,7 @@ Ouvrir l’URL affichée (souvent [http://localhost:8501](http://localhost:8501)
 
 **Connexion démo :** voir `dashboard/users.json` (template : `users.json.dist`).
 
-Configurer l’URL API dans le dashboard si l’API tourne sur un autre host/port.
+Pour appeler l’API en production depuis le dashboard : `GETAROUND_API_URL=https://raphael-nk-getaround-api.hf.space` (variable d’environnement ou réglage dans l’app).
 
 ---
 
@@ -280,17 +313,17 @@ Configurer l’URL API dans le dashboard si l’API tourne sur un autre host/por
 | Service | URL |
 |---------|-----|
 | **MLflow** | [https://raphael-nk-getaround-mlflow.hf.space](https://raphael-nk-getaround-mlflow.hf.space) |
+| **API** | [https://raphael-nk-getaround-api.hf.space](https://raphael-nk-getaround-api.hf.space) |
+| **Documentation API** | [https://raphael-nk-getaround-api.hf.space/docs](https://raphael-nk-getaround-api.hf.space/docs) |
+| **Predict** | [https://raphael-nk-getaround-api.hf.space/predict](https://raphael-nk-getaround-api.hf.space/predict) |
 | **Dashboard** | `https://<votre-dashboard>/` *(à compléter)* |
-| **API** | `https://<votre-api>/` *(à compléter)* |
-| **Documentation API** | `https://<votre-api>/docs` *(à compléter)* |
-| **Predict** | `https://<votre-api>/predict` *(à compléter)* |
 
 **Exemple production :**
 
 ```bash
 curl -i -H "Content-Type: application/json" -X POST \
-  -d '{"input":[...]}' \
-  https://<votre-api>/predict
+  -d '{"input":[{"model_key":"Citroën","mileage":50000,"engine_power":90,"fuel":"diesel","paint_color":"black","car_type":"hatchback","private_parking_available":true,"has_gps":true,"has_air_conditioning":true,"automatic_car":false,"has_getaround_connect":true,"has_speed_regulator":true,"winter_tires":false}]}' \
+  https://raphael-nk-getaround-api.hf.space/predict
 ```
 
 ---

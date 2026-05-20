@@ -1,6 +1,8 @@
 [submodule "mlflow"]
 	path = mlflow
 	url = https://huggingface.co/spaces/raphael-nk/getaround-mlflow
+	branch = main
 [submodule "api"]
 	path = api
 	url = https://huggingface.co/spaces/raphael-nk/getaround-api
+	branch = main
