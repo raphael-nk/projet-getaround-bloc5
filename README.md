@@ -50,7 +50,7 @@ GetAround envisage un **délai minimum** entre deux réservations sur le même v
 **Données (dashboard en prod)** : `s3://amzn-jedha-39/datasets/getaround/`  
 Fichiers attendus : `get_around_delay_analysis.xlsx`, `get_around_pricing_project.csv`
 
-Chaque service est un **Docker Space** (pas de `docker-compose`). Le code des Spaces est versionné dans ce dépôt via des **submodules Git** (voir ci-dessous).
+En **production**, chaque service est un **Docker Space** Hugging Face. En **local**, vous pouvez lancer la stack complète avec **`docker-compose.yml`** à la racine (voir [Docker Compose](#docker-compose-stack-locale)) ou builder chaque submodule séparément. Le code des Spaces est versionné via des **submodules Git** (voir ci-dessous).
 
 ---
 
@@ -62,6 +62,7 @@ Le dépôt principal (monorepo GitHub) contient l’analyse, les notebooks et le
 
 ```
 projet-getaround-bloc5/
+├── docker-compose.yml          # stack locale MLflow + API + dashboard
 ├── .gitmodules                 # déclaration des 3 submodules → Spaces HF
 ├── .env.dist                   # template variables (copier → .env)
 ├── docs/
@@ -208,6 +209,7 @@ git push
 - **[uv](https://docs.astral.sh/uv/)** (gestionnaire de dépendances) — groupes : `notebook`, `api`, `mlflow`, `dashboard`
 - **pandas 2.x** (MLflow 3 n’est pas compatible avec pandas 3)
 - **Git** avec support submodules
+- **Docker** + **Docker Compose** *(optionnel)* — stack locale des 3 services
 - Données dans `data/` à la racine (notebooks) ou accès S3 pour le dashboard
 - **MLflow** : PostgreSQL (Neon) + artefacts S3 — voir `.env`
 - **AWS** : lecture du bucket datasets pour le dashboard en prod (`GETAROUND_DATA_S3_URI`)
@@ -230,6 +232,62 @@ cp dashboard/users.json.dist dashboard/users.json
 
 ---
 
+## Docker Compose (stack locale)
+
+Le fichier [`docker-compose.yml`](docker-compose.yml) démarre les **3 submodules** sur un réseau Docker partagé, avec healthchecks et ordre de démarrage (`mlflow` → `api` → `dashboard`).
+
+### Lancer la stack
+
+```bash
+git clone --recurse-submodules <url-du-repo>
+cd projet-getaround-bloc5
+cp .env.dist .env
+# Éditer .env (Postgres Neon, AWS, ARTIFACT_ROOT, …)
+
+docker compose up --build
+```
+
+| Service | URL depuis votre machine |
+|---------|--------------------------|
+| MLflow | [http://127.0.0.1:5000](http://127.0.0.1:5000) |
+| API (Swagger) | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) |
+| Dashboard | [http://127.0.0.1:8501](http://127.0.0.1:8501) |
+
+Le dossier local **`data/`** est monté en lecture seule dans le dashboard (`./data:/app/data`), ce qui évite le sync S3 au démarrage.
+
+### Variables d’environnement : hôte vs conteneurs
+
+Le fichier **`.env`** à la racine est chargé par `api` et `dashboard` (`env_file`). Les URLs `http://127.0.0.1:…` conviennent au **développement hors Docker** (notebooks, `uvicorn` local).
+
+**À l’intérieur des conteneurs**, `127.0.0.1` désigne le conteneur lui-même, pas les autres services. `docker-compose.yml` **surcharge** donc les variables lues par le code :
+
+| Service | Variable lue par le code | Valeur dans Compose (réseau Docker) |
+|---------|-------------------------|-------------------------------------|
+| `api` | `MLFLOW_SERVER_URI` | `http://mlflow:5000` |
+| `api` | `MLFLOW_PRODUCTION_RUN_NAME` | `production-best-model` |
+| `dashboard` | `GETAROUND_API_URL` | `http://api:8000` |
+
+Ne pas utiliser `MLFLOW_TRACKING_URI` ni `API_URL` dans Compose : l’API lit `MLFLOW_SERVER_URI` ([`api/main.py`](api/main.py)), le dashboard lit `GETAROUND_API_URL` ([`dashboard/main.py`](dashboard/main.py)).
+
+Conserver dans **`.env`** :
+
+```bash
+MLFLOW_SERVER_URI=http://127.0.0.1:5000      # notebooks, dev local
+GETAROUND_API_URL=http://127.0.0.1:8000
+MLFLOW_PRODUCTION_RUN_NAME=production-best-model
+```
+
+### Vérification
+
+```bash
+curl -s http://127.0.0.1:8000/health | jq .
+# Attendu : "model_loaded": true, "model_source": "mlflow" ou "local"
+```
+
+Le dashboard doit afficher l’API comme accessible (section statut de l’API de prédiction). Si `model_loaded` est `false`, vérifier le run MLflow `production-best-model` (ou tag `stage=production`) et les credentials **`AWS_*`** pour les artefacts S3.
+
+---
+
 ## Configuration (`.env`)
 
 Copier `.env.dist` vers `.env` et renseigner :
@@ -244,9 +302,11 @@ Copier `.env.dist` vers `.env` et renseigner :
 | `ARTIFACT_ROOT` | Racine artefacts MLflow (`s3://...`) |
 | `MLFLOW_S3_ENDPOINT_URL` | Endpoint S3 (ex. `https://s3.eu-west-3.amazonaws.com`) |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | Credentials AWS (MLflow artefacts + sync dashboard) |
-| `GETAROUND_API_URL` | API pricing (prod : `https://raphael-nk-getaround-api.hf.space`, local : `http://127.0.0.1:8000`) |
+| `GETAROUND_API_URL` | API pricing (prod : `https://raphael-nk-getaround-api.hf.space`, local : `http://127.0.0.1:8000` ; **Compose** surcharge en `http://api:8000`) |
 | `GETAROUND_DATA_S3_URI` | Préfixe S3 datasets dashboard : `s3://amzn-jedha-39/datasets/getaround/` |
-| `DATA_DIR` | *(optionnel)* Forcer le dossier data du dashboard |
+| `DATA_DIR` | *(optionnel)* Forcer le dossier data du dashboard ; Compose fixe `/app/data` pour le dashboard |
+
+**Docker Compose :** `MLFLOW_SERVER_URI` et `GETAROUND_API_URL` du `.env` sont remplacés par les hostnames de service (`mlflow`, `api`) — voir [Docker Compose](#docker-compose-stack-locale).
 
 ---
 
@@ -527,6 +587,7 @@ En local, le dashboard résout les chemins dans cet ordre : `dashboard/data/` �
 - **Streamlit**
 - **MLflow 3.12** (tracking + artefacts S3) — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/JOURNAL.md](docs/JOURNAL.md)
 - **PostgreSQL** (Neon) · **boto3** (artefacts MLflow + sync datasets dashboard)
+- **Docker Compose** — stack locale (`docker-compose.yml`)
 - **Hugging Face Spaces** (Docker) — déploiement API, MLflow, dashboard
 
 ---
