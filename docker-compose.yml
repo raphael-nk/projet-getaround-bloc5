@@ -1,0 +1,74 @@
+services:
+
+  # ─────────────────────────────────────────
+  #  MLflow  →  http://localhost:5000
+  # ─────────────────────────────────────────
+  mlflow:
+    build:
+      context: ./mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: "5000"
+      MLFLOW_BACKEND_STORE_URI: ${MLFLOW_BACKEND_STORE_URI:-sqlite:////mlflow/mlflow.db}
+      ARTIFACT_ROOT: ${ARTIFACT_ROOT:-/mlflow/artifacts}
+    volumes:
+      - mlflow_data:/mlflow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────
+  #  API FastAPI  →  http://localhost:8000
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ─────────────────────────────────────────
+  #  Dashboard Streamlit  →  http://localhost:8501
+  # ─────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      PORT: "8501"
+      API_URL: http://api:8000
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      DATA_DIR: /app/data
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data:ro       # mount local data/ so S3 sync is optional
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mlflow_data:
