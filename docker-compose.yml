@@ -1,7 +1,7 @@
 services:
 
   # ─────────────────────────────────────────
-  #  MLflow  →  http://localhost:5000
+  #  MLflow  -  http://localhost:5000
   # ─────────────────────────────────────────
   mlflow:
     build:
@@ -23,7 +23,7 @@ services:
       start_period: 10s
 
   # ─────────────────────────────────────────
-  #  API FastAPI  →  http://localhost:8000
+  #  API FastAPI  -  http://localhost:8000
   # ─────────────────────────────────────────
   api:
     build:
@@ -32,7 +32,8 @@ services:
       - "8000:8000"
     environment:
       PORT: "8000"
-      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_SERVER_URI: http://mlflow:5000
+      MLFLOW_PRODUCTION_RUN_NAME: production-best-model
     env_file:
       - path: .env
         required: false
@@ -48,7 +49,7 @@ services:
       start_period: 15s
 
   # ─────────────────────────────────────────
-  #  Dashboard Streamlit  →  http://localhost:8501
+  #  Dashboard Streamlit  -  http://localhost:8501
   # ─────────────────────────────────────────
   dashboard:
     build:
@@ -57,14 +58,13 @@ services:
       - "8501:8501"
     environment:
       PORT: "8501"
-      API_URL: http://api:8000
-      MLFLOW_TRACKING_URI: http://mlflow:5000
+      GETAROUND_API_URL: http://api:8000
       DATA_DIR: /app/data
     env_file:
       - path: .env
         required: false
     volumes:
-      - ./data:/app/data:ro       # mount local data/ so S3 sync is optional
+      - ./data:/app/data:ro     
     depends_on:
       api:
         condition: service_healthy
