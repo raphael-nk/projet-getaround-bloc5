@@ -4,7 +4,7 @@
 
 # Projet GetAround — Analyse des retards et pricing ML
 
-**Bloc 5 — Deployment** · Certification RNCP CDSD — Jedha
+**Bloc 5 — Deployment** · Certification CDSD RNCP35288 - Niveau 6 · [Jedha Bootcamp](https://www.jedha.co/)
 
 ## Accès en ligne (production)
 
@@ -310,4 +310,4 @@ git push
 
 **RANJAKASOA Raphaël Marcellin**
 
-Projet réalisé dans le cadre du **Bloc 5 — Deployment**, certification **RNCP CDSD**, **Jedha Bootcamp**.
+Projet réalisé dans le cadre du **Bloc 5 — Deployment**, certification **CDSD RNCP35288 - Niveau 6**, [**Jedha Bootcamp**](https://www.jedha.co/).
